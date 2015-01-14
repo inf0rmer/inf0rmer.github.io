@@ -3,7 +3,6 @@ layout: post
 title:  "Continuous Integration for iOS Apps"
 subtitle: "Release early, release often."
 date:   2014-08-29 14:34:25
-tags: featured
 image: /assets/article_images/2014-08-22-continuous-integration-ios-apps/header.jpg
 ---
 
