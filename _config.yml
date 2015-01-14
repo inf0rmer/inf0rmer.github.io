@@ -3,30 +3,30 @@ markdown: redcarpet
 highlighter: pygments
 
 # Site settings
-title: "Mediator"
+title: "Bruno writes software"
 description: > # this means to ignore newlines until "email:"
-   A Jekyll theme - Medium inspired
+   Breaking fast and moving things.
 
-email: a-mail@mail.mail
+email: bruno@brunoabrantes.com
 #blog logo
-logo: "/assets/images/df_logo.jpg"
+logo: "/assets/images/logo.jpg"
 # blog cover
-cover: "/assets/images/cA4aKEIPQrerBnp1yGHv_IMG_9534-3-2.jpg"
+cover: "/assets/images/cover.jpg"
 
-name: 'Dirk Fabisch'
-author: 'Dirk Fabisch'
+name: 'Bruno Abrantes'
+author: 'Bruno Abrantes'
 author_image: "/assets/images/author.jpg"
 
 paginate:	5
 
-url: "http://myblog.***.***" # the base hostname & protocol for your site
+url: "http://brunoabrantes.com" # the base hostname & protocol for your site
 baseurl: ""
 
 # social icons and sharing options
 social:
   - icon:	twitter
-    url:	https://twitter.com/dirkfabisch
-    desc: Follow me on twitter
+    url:	https://twitter.com/inf0rmer
+    desc: Follow me on Twitter
     share_url: http://twitter.com/share
     share_title: ?text=
     share_link: "&amp;url="
@@ -39,8 +39,8 @@ social:
 #    share_link: "&amp;u="
 
   - icon:	github
-    url:	https://github.com/dirkfabisch
-    desc:	Fork me on github
+    url:	https://github.com/inf0rmer
+    desc:	See my code on Github
     share_url:
     share_title:
     share_link:
