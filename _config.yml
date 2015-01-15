@@ -53,6 +53,10 @@ social:
 #    share_title:
 #    share_link:
 
+gems:
+  - jekyll-assets
+  - uglifier
+  - sass
 assets:
   js_compressor:  uglifier
   css_compressor: sass
