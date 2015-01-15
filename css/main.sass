@@ -48,6 +48,8 @@ body
   background-color: transparent
   overflow: hidden
   z-index: 99
+  @include respond-to(720)
+    display: none
   .logo
     display: block
     position: absolute
@@ -62,9 +64,13 @@ body
 
 .teaserimage
   height: 450px
+  @include respond-to(500)
+    height: 140px
   position: relative
   overflow: hidden
   background-color: #000
+  .blurred
+    opacity: 0
   .teaserimage-image
     background-size: cover
     background-position: center

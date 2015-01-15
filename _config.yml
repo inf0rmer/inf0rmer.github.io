@@ -12,6 +12,7 @@ email: bruno@brunoabrantes.com
 logo: "/assets/images/logo.jpg"
 # blog cover
 cover: "/assets/images/cover.jpg"
+cover_blurred: "/assets/images/cover_blur.jpg"
 
 name: 'Bruno Abrantes'
 author: 'Bruno Abrantes'
