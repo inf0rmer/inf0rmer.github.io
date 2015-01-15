@@ -6,13 +6,19 @@
 (function ($) {
     "use strict";
 
-    $(document).ready(function(){
-
+    function applyScrollEffect() {
       var $window = $(window),
-        $image = $('.post-image-image, .teaserimage-image'),
-        $blurredImage = $('.post-image-image.blurred, .teaserimage-image.blurred');
+        $image,
+        $blurredImage;
+
+      $image = $('.post-image-image, .teaserimage-image');
+      $blurredImage = $('.post-image-image.blurred, .teaserimage-image.blurred');
 
       $window.on('scroll', function() {
+        if ($window.width() <= 500) {
+          return;
+        }
+
         var top = $window.scrollTop();
 
         if (top < 0 || top > 1500) { return; }
@@ -25,6 +31,11 @@
           .css('opacity', Math.max(top/150, 0));
       });
       $window.trigger('scroll');
+    }
+
+    $(document).ready(function(){
+
+      applyScrollEffect();
 
       var height = $('.article-image').height();
       $('.post-content').css('padding-top', height + 'px');
