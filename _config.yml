@@ -60,3 +60,5 @@ gems:
 assets:
   js_compressor:  uglifier
   css_compressor: sass
+source: ./_source
+plugins: ./_source/_plugins
