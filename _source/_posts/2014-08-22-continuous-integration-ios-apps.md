@@ -4,6 +4,9 @@ title:  "Continuous Integration for iOS Apps"
 subtitle: "Release early, release often."
 date:   2014-08-29 14:34:25
 image: /assets/article_images/2014-08-22-continuous-integration-ios-apps/header.jpg
+excerpt: "How can we deliver Continuous Integration when developing on a platform such
+as iOS? This article goes into detail about the development cycle my team practiced while
+developing the Clubjudge app."
 ---
 
 Coming from a background in web development, I’m very much used to delivering software in quick cycles. Features are broken down to their core, developed and tested and then released into the wild. Sometimes a product is deployed to production customers dozens of times in a day. In its turn, this methodology facilitates and thrives on a quick feedback loop, with small iterations on a single feature being the norm.
