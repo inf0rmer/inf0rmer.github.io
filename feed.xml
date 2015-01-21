@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Bruno writes software</title>
+    <description>Breaking fast and moving things.
+</description>
+    <link>http://brunoabrantes.com/</link>
+    <atom:link href="http://brunoabrantes.com/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Wed, 21 Jan 2015 17:34:24 +0100</pubDate>
+    <lastBuildDate>Wed, 21 Jan 2015 17:34:24 +0100</lastBuildDate>
+    <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Exploring APIs with Metaprogramming</title>
+        <description>&lt;p&gt;The &lt;a href=&quot;http://en.wikipedia.org/wiki/Metaprogramming&quot;&gt;Wikipedia entry&lt;/a&gt; for &amp;quot;metaprogramming&amp;quot; defines it as:&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;(…) the writing of computer programs with the ability to treat programs as their data. It means that a program could be designed to read, generate, analyse and/or transform other programs, and even modify itself while running.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;For the purposes of this article, we can define metaprogramming as the ability to &lt;strong&gt;write code that writes code&lt;/strong&gt;. I’ve been dwelling on this topic a lot ever since I started playing with the &lt;a href=&quot;http://elixir-lang.org/&quot;&gt;Elixir language&lt;/a&gt;, however, after having discussed RESTful API design with my co-workers during the last few weeks, I set out to build a simple tool that allows one to easily explore and consume a web API. The result is a Ruby gem affectionately called &lt;a href=&quot;https://github.com/inf0rmer/blanket&quot;&gt;Blanket&lt;/a&gt;. Here’s an example of Blanket in use, together with the &lt;a href=&quot;https://developer.github.com/v3/&quot;&gt;Github API&lt;/a&gt;:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/78a84c0faa1a087ddf24.js&quot;&gt; &lt;/script&gt;
+
+&lt;h1&gt;Dynamic method dispatching&lt;/h1&gt;
+
+&lt;p&gt;Once you’ve wrapped an API with Blanket, every method you call on the wrapper is added as a part of the URL. Only when you call any of the action methods (&lt;code&gt;GET&lt;/code&gt;, &lt;code&gt;POST&lt;/code&gt;, &lt;code&gt;PUT&lt;/code&gt;, &lt;code&gt;PATCH&lt;/code&gt; and &lt;code&gt;DELETE&lt;/code&gt;) is the request actually executed. If you pass a parameter to a method such as users, it is appended after it as a resource identifier, following the REST convention of &lt;code&gt;:resource/:id&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The actual code that does this is surprisingly small and terse, thanks to Ruby’s support for dynamic method dispatch via &lt;strong&gt;&lt;code&gt;method_missing&lt;/code&gt;&lt;/strong&gt;. If you define this method in one of your classes, all messages sent to that object that are not statically defined get rerouted to the handler you’ve defined. At the time of writing, Blanket’s method missing reads as such:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/fcc26bb9d6045f72d4df.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;Calling any undefined method on a &lt;code&gt;Blanket::Wrapper&lt;/code&gt; object will return a new instance wrapped with the current URL. The fact that these objects are, for all intents and purposes, immutable is an aspect that greatly lowers the complexity of the program, but that is enough material for another post ☺.&lt;/p&gt;
+
+&lt;p&gt;This class currently spans around 90 LOC, with most of it dedicated to private helper methods. The &lt;code&gt;Wrapper&lt;/code&gt; class contains five other public methods though: the RESTful request actions. These, however, are not statically defined in the code either, they are generated at runtime.&lt;/p&gt;
+
+&lt;h1&gt;Code that writes code&lt;/h1&gt;
+
+&lt;p&gt;Ruby objects have another very useful method for metaprogramming called &lt;strong&gt;&lt;code&gt;define_method&lt;/code&gt;&lt;/strong&gt;. This allows you to define methods in your class at runtime, as if out of thin air. To generate the request actions Blanket defines a small private &amp;quot;macro&amp;quot; (heavy quotes around that as Ruby does not really support macros, this just makes it look like one):&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/c3034198f813d92492f9.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;The &lt;code&gt;request&lt;/code&gt; method is where the actual HTTP request happens, so this macro is just a way to conveniently add all of the similar request actions at runtime. Here’s how all the relevant methods are added:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/4321e9b103d027a14b22.js&quot;&gt; &lt;/script&gt;
+
+&lt;h1&gt;Classes can be dynamic too!&lt;/h1&gt;
+
+&lt;p&gt;While developing Exception raising support, I came across a fun problem: I wanted to expose specific &lt;code&gt;Blanket::Exception&lt;/code&gt; classes for well known HTTP status codes such as &lt;code&gt;400&lt;/code&gt;, &lt;code&gt;404&lt;/code&gt;, &lt;code&gt;500&lt;/code&gt;, you get the drift. This would make capturing and handling different types of exceptions easier.&lt;/p&gt;
+
+&lt;p&gt;One could surely just type all this code in, but there are about 60 well-known status codes and I don’t really enjoy repetitive tasks that much. Let’s take a map of status codes, using the code as a key and the value as it’s meaning in a human readable format:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/4b00db3eaf14affba8e3.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;Let’s get on to the fun part: generating &lt;code&gt;Blanket::Exception&lt;/code&gt; subclasses for each of these!&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/147dd9d5c52f2ed77aae.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;There are a few things happening here. For each code/message pair, we’re creating a new Class inheriting from &lt;code&gt;Exception&lt;/code&gt;, defining a method in it, setting it as a constant and finally, adding it to another map, &lt;code&gt;EXCEPTIONS_MAP&lt;/code&gt;. This last step allows to raise a new 500 Exception like this:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/8148341963c0b52d1efc.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;Because we also defined each of these exceptions as a constant, you could also do this directly:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/b73d0c8a84e0d3e197b1.js&quot;&gt; &lt;/script&gt;
+
+&lt;h1&gt;Documenting your endeavours&lt;/h1&gt;
+
+&lt;p&gt;Writing code that writes code can obviously be very powerful, but software cannot be written solely for the computer to understand. Because your code will, at some point, probably be used by other human beings, documenting how it works is of paramount importance. &lt;strong&gt;But how do you document that which is not there?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://yardoc.org/&quot;&gt;YARD&lt;/a&gt; is a documentation tool for Ruby projects. Here’s how you may generally document a static method:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/559c04cb99f2462b830e.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;Remember the &lt;code&gt;add_action&lt;/code&gt; &amp;quot;macro&amp;quot; we talked about earlier, used to define the various RESTful action methods? We can use YARD’s &lt;code&gt;@macro&lt;/code&gt; directive to dynamically create documentation for all invocations of &lt;code&gt;add_action&lt;/code&gt;:&lt;/p&gt;
+
+&lt;script src=&quot;https://gist.github.com/inf0rmer/7bfbdb91a5f01e8b56c4.js&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;When we call &lt;code&gt;add_action&lt;/code&gt; with &lt;code&gt;:get&lt;/code&gt;, for example, documentation would be created for a public method &lt;code&gt;get&lt;/code&gt;, with the text &lt;em&gt;Performs a get request on the wrapped URL&lt;/em&gt; as well as all available parameters and return types.&lt;/p&gt;
+
+&lt;h1&gt;Wrapping it all up&lt;/h1&gt;
+
+&lt;p&gt;Metaprogramming allows you to build wonderfully expressive interfaces while writing as little code as possible. In the case of Blanket, the whole project is comprised of three classes weighing around 40–90 LOC each, including documentation. For such a little utility, I would argue it packs a whole lot of functionality and delivers in a very terse and declarative way.&lt;/p&gt;
+
+&lt;p&gt;While it can be a powerful tool, in most cases you should exercise caution and restraint when using it, as its misuse can quickly muddle a codebase and lead to confused and frustrated collaborators trying to make sense of your highly abstracted code.&lt;/p&gt;
+
+&lt;p&gt;The next challenge? What if you could do this in Javascript? Every piece of software that can be written in Javascript will eventually be written in Javascript, so why not give it a go? Stay tuned!&lt;/p&gt;
+
+&lt;p&gt;Header Photo by &lt;a href=&quot;https://www.flickr.com/photos/87485176@N08/15062733327/in/photolist-oX3rQK-pRjCbP-o8Zvys-o7sUGi-pyJSZC-qdic3a-pRSkKv-pmhgiG-phhvdB-pyv1Ke-phiMJG-pqsTpJ-qughm9-pzD5mY-pSacjU-pwHhaA-phjheh-phiZgj-pzDHf7-pPXZuQ-pzExwB-pCErwx-pheQo6-phigXe-phjcfg-pyur2n-pyKGsr-pwLuHq-phjwPr-oz5kXU-phiDb8-pyMnpc-phi52o-phh53B-pyPj2g-phfqux-oHnU8G-oVdcUh-pxFHgE-qvAG9K-phjB1H-pyu5mK-pyNTpk-phik3y-pyKQ2w-phhbwZ-pyLy8i-pzFLjm-oVgKgD-pS5j6n&quot;&gt;Elvis Pucar&lt;/a&gt;&lt;/p&gt;
+</description>
+        <pubDate>Tue, 30 Dec 2014 00:00:00 +0100</pubDate>
+        <link>http://brunoabrantes.com/2014/12/30/exploring-apis-with-metaprogramming.html</link>
+        <guid isPermaLink="true">http://brunoabrantes.com/2014/12/30/exploring-apis-with-metaprogramming.html</guid>
+        
+        
+      </item>
+    
+      <item>
+        <title>Continuous Integration for iOS Apps</title>
+        <description>&lt;p&gt;Coming from a background in web development, I’m very much used to delivering software in quick cycles. Features are broken down to their core, developed and tested and then released into the wild. Sometimes a product is deployed to production customers dozens of times in a day. In its turn, this methodology facilitates and thrives on a quick feedback loop, with small iterations on a single feature being the norm.&lt;/p&gt;
+
+&lt;h1&gt;But is mobile any different?&lt;/h1&gt;
+
+&lt;p&gt;Development workflows for (native) mobile apps are a little diferent, yes, mostly because of App stores themselves, which require review times that can take full weeks before your app is in customers’ hands.&lt;/p&gt;
+
+&lt;p&gt;The languages we use to develop these apps also make shorter feedback loops more difficult. It’s a lot harder to develop using a &lt;a href=&quot;http://en.wikipedia.org/wiki/Test-driven_development&quot;&gt;TDD&lt;/a&gt;-based workflow when you have to compile code every time you wish to run your test suite.&lt;/p&gt;
+
+&lt;h1&gt;How to manage Release Cycles&lt;/h1&gt;
+
+&lt;p&gt;Lately I’ve found a good approach to manage release cycles and beta testing. Here’s a simple overview of the workflow I’ve adopted when developing the &lt;a href=&quot;https://itunes.apple.com/us/app/club-judge/id890519026?ls=1&amp;amp;mt=8&quot;&gt;Clubjudge app&lt;/a&gt;:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Develop and test the feature&lt;/li&gt;
+&lt;li&gt;Integrate the new feature with the current stable branch&lt;/li&gt;
+&lt;li&gt;Publish a beta version&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1&gt;Development &amp;amp; Testing&lt;/h1&gt;
+
+&lt;p&gt;A feature branch is created in the Git repository, based off of the current master. The master branch only contains code that has been proven to work through automatic and manual testing by the developers (it can, of course, still contain bugs) and that is well integrated into the app’s UI, so it is always deployable.&lt;/p&gt;
+
+&lt;p&gt;As the feature is developed, the suite of unit tests is expanded to cover its use cases. It’s a little more difficult to use the classic red-green-refactor TDD cycle, because XCode does a lot of the legwork for you, but it’s still doable in a relatively rapid, iterative fashion.&lt;/p&gt;
+
+&lt;p&gt;For writing the actual unit tests, we use the excellent &lt;a href=&quot;https://github.com/kiwi-bdd/Kiwi&quot;&gt;Kiwi BDD&lt;/a&gt; framework. Writing tests in a &lt;a href=&quot;http://en.wikipedia.org/wiki/Behavior-driven_development&quot;&gt;BDD style&lt;/a&gt; is a natural fit for our team (and personally, my favorite way of authoring tests), since we use the same style across all our other applications, written in Ruby and Javascript.&lt;/p&gt;
+
+&lt;h1&gt;Integrating the new feature&lt;/h1&gt;
+
+&lt;p&gt;Once the feature is ready, a Pull Request is submitted to our Github repository.&lt;/p&gt;
+
+&lt;p&gt;The time code spends in a Pull Request is very important. For one, it presents an opportunity for other members of your team to review your code, pointing out possible problem areas or discussing some novel technique that was used.&lt;/p&gt;
+
+&lt;p&gt;While the team is reviewing the code, a new build order is automatically issued on &lt;a href=&quot;http://travis-ci.org/&quot;&gt;Travis CI&lt;/a&gt; (free for open source, paid plans for closed source), where the new code will be tested against the current master branch. This build process does a lot of work for us: It downloads all third party dependencies (via &lt;a href=&quot;http://cocoapods.org/&quot;&gt;Cocoapods&lt;/a&gt;), compiles the project’s target and runs the unit test suite.&lt;/p&gt;
+
+&lt;p&gt;The xcodebuild command-line tool (we use Facebook’s &lt;a href=&quot;https://github.com/facebook/xctool&quot;&gt;xctool&lt;/a&gt;) compiles the project with the &lt;code&gt;GCC_INSTRUMENT_PROGRAM_FLOW_ARCS&lt;/code&gt; and &lt;code&gt;GCC_GENERATE_TEST_COVERAGE_FILES&lt;/code&gt; flags set to &lt;code&gt;YES&lt;/code&gt;, so code coverage reports are generated. Using a simple Ruby script (written by &lt;a href=&quot;http://www.cocoanetics.com/&quot;&gt;Cocoanetics&lt;/a&gt;, available &lt;a href=&quot;https://github.com/Cocoanetics/Ruby/blob/master/coveralls.rb&quot;&gt;on Github&lt;/a&gt;), coverage data is uploaded to &lt;a href=&quot;https://coveralls.io/&quot;&gt;Coveralls&lt;/a&gt; (also free for open source and paid for closed source), which lets us quickly look at how well the project is covered by unit tests. &lt;a href=&quot;https://coveralls.io/r/Clubjudge/objc-sdk&quot;&gt;Here’s an example&lt;/a&gt; from our open-source &lt;a href=&quot;http://github.com/clubjudge/objc-sdk&quot;&gt;Objective-C SDK&lt;/a&gt; for the Clubjudge API:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/article_images/2014-08-22-continuous-integration-ios-apps/coveralls.png&quot; alt=&quot;A sample Coveralls report&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;If the build passes on Travis and the coverage report is good (a rule of thumb is that it should at least remain at the same %) the Pull Request is merged and makes its way into the master branch.&lt;/p&gt;
+
+&lt;h1&gt;Beta testing the feature&lt;/h1&gt;
+
+&lt;p&gt;Once the new commits are picked up on master, Travis kicks off another build process. Once this is complete, a simple shell script creates a Release build, signs it and then uses &lt;a href=&quot;http://testflightapp.com/&quot;&gt;Testflight’s&lt;/a&gt; API to publish the build. From then on it’s simply a matter of allowing testers access to the build and watching the reports come in! We like to keep this last step manual, as not all builds of master should be beta candidates. The whole process of setting up Travis to compile builds and send them to Testflight is &lt;a href=&quot;https://gist.github.com/johanneswuerbach/5559514&quot;&gt;in this gist&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1&gt;Wrapping it all up&lt;/h1&gt;
+
+&lt;p&gt;While it’s true that all of this process takes a while to fully get up and running, I believe it automates a lot of boring tasks and lets us develop mobile software in a way that is closest to the agile spirit already very widespread in web development circles. It lets our team worry about coding and delivering value to the end user while enjoying shorter feedback cycles, and allows us to follow a tight release scheme that maps closely to our in-house development sprints.&lt;/p&gt;
+
+&lt;p&gt;If you have any questions or comments, feel free to reach out to me on Twitter. I’m &lt;a href=&quot;http://twitter.com/inf0rmer&quot;&gt;@informer&lt;/a&gt;.&lt;/p&gt;
+</description>
+        <pubDate>Fri, 29 Aug 2014 00:00:00 +0200</pubDate>
+        <link>http://brunoabrantes.com/2014/08/29/continuous-integration-ios-apps.html</link>
+        <guid isPermaLink="true">http://brunoabrantes.com/2014/08/29/continuous-integration-ios-apps.html</guid>
+        
+        
+      </item>
+    
+  </channel>
+</rss>
