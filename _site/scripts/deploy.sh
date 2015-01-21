@@ -1,6 +1,6 @@
 #!/bin/bash
 timestamp() {
-  date +"%T"
+  date +"%Y-%m-%d_%H-%M-%S"
 }
 
 jekyll build
