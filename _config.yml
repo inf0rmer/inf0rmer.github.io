@@ -1,6 +1,7 @@
 # Build settings
 markdown: redcarpet
 highlighter: pygments
+include: ["CNAME", "LICENCE", "feed.xml", "assets/images", "assets/article_images"]
 
 # Site settings
 title: "Bruno writes software"
@@ -60,5 +61,6 @@ gems:
 assets:
   js_compressor:  uglifier
   css_compressor: sass
-source: ./_source
-plugins: ./_source/_plugins
+  sources:
+    - _assets/javascripts
+    - _assets/stylesheets
