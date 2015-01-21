@@ -2,7 +2,7 @@
 layout: post
 title:  "Continuous Integration for iOS Apps"
 subtitle: "Release early, release often."
-date:   2014-08-29 14:34:25
+date:   2014-08-29
 image: /assets/article_images/2014-08-22-continuous-integration-ios-apps/header.jpg
 excerpt: "How can we deliver Continuous Integration when developing on a platform such
 as iOS? This article goes into detail about the development cycle my team practiced while

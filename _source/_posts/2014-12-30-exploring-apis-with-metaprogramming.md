@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Exploring APIs with Metaprogramming"
-date:   2014-08-29 14:34:25
+date:   2014-12-30
 image: /assets/article_images/2014-12-30-exploring-apis-with-metaprogramming/header.jpg
 excerpt: "Introducing Blanket, a dead simple API client.
 The article explores the concept of Metaprogramming and how it can be implemented in Ruby."
