@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <!-- (1) Optimize for mobile versions: http://goo.gl/EOpFl -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- (1) force latest IE rendering engine: bit.ly/1c8EiC9 -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <title>Exploring APIs with Metaprogramming</title>
+  <meta name="description" content="Breaking fast and moving things.
+" />
+
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="canonical" href="http://brunoabrantes.com/2014/08/29/exploring-apis-with-metaprogramming.html">
+
+  <link rel="shortcut icon" href="/assets/images/favicon.ico">
+<!--  <link rel="stylesheet" href=""> -->
+  <link rel="stylesheet" href="http://brick.a.ssl.fastly.net/Linux+Libertine:400,400i,700,700i/Open+Sans:400,400i,700,700i">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="print" href="/css/print.css" />
+</head>
+
+  <body itemscope itemtype="http://schema.org/Article">
+    <!-- header start -->
+
+<a href="http://brunoabrantes.com" class="logo-readium"><span class="logo" style="background-image: url(/assets/images/logo.jpg)"></span></a>
+
+<!-- header end -->
+
+    <main class="content" role="main">
+      <article class="post">
+        
+        <div class="article-image">
+          <div class="post-image-image" style="background-image: url(/assets/article_images/2014-12-30-exploring-apis-with-metaprogramming/header.jpg)">
+          </div>
+          <div class="post-meta">
+            <h1 class="post-title">Exploring APIs with Metaprogramming</h1>
+            
+            <div class="cf post-meta-text">
+              <div class="author-image" style="background-image: url(/assets/images/author.jpg)"></div>
+              <h4 class="author-name" itemprop="author" itemscope itemtype="http://schema.org/Person">Bruno Abrantes</h4>
+              on
+              <time datetime="2014-08-29 16:34">29 Aug 2014</time>
+              <!-- , tagged on <span class="post-tag-">, <a href="/tag/"></a></span> -->
+            </div>
+            <div style="text-align:center">
+              <a href="#topofpage" class="topofpage"><i class="fa fa-angle-down"></i></a>
+            </div>
+          </div>
+        </div>
+        
+        <section class="post-content">
+          <div class="post-reading">
+            <span class="post-reading-time"></span> read
+          </div>
+          <a name="topofpage"></a>
+          <p>The <a href="http://en.wikipedia.org/wiki/Metaprogramming">Wikipedia entry</a> for &quot;metaprogramming&quot; defines it as:</p>
+
+<blockquote>
+<p>(…) the writing of computer programs with the ability to treat programs as their data. It means that a program could be designed to read, generate, analyse and/or transform other programs, and even modify itself while running.</p>
+</blockquote>
+
+<p>For the purposes of this article, we can define metaprogramming as the ability to <strong>write code that writes code</strong>. I’ve been dwelling on this topic a lot ever since I started playing with the <a href="http://elixir-lang.org/">Elixir language</a>, however, after having discussed RESTful API design with my co-workers during the last few weeks, I set out to build a simple tool that allows one to easily explore and consume a web API. The result is a Ruby gem affectionately called <a href="https://github.com/inf0rmer/blanket">Blanket</a>. Here’s an example of Blanket in use, together with the <a href="https://developer.github.com/v3/">Github API</a>:</p>
+
+<script src="https://gist.github.com/inf0rmer/78a84c0faa1a087ddf24.js"> </script>
+
+<h1>Dynamic method dispatching</h1>
+
+<p>Once you’ve wrapped an API with Blanket, every method you call on the wrapper is added as a part of the URL. Only when you call any of the action methods (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>PATCH</code> and <code>DELETE</code>) is the request actually executed. If you pass a parameter to a method such as users, it is appended after it as a resource identifier, following the REST convention of <code>:resource/:id</code>.</p>
+
+<p>The actual code that does this is surprisingly small and terse, thanks to Ruby’s support for dynamic method dispatch via <strong><code>method_missing</code></strong>. If you define this method in one of your classes, all messages sent to that object that are not statically defined get rerouted to the handler you’ve defined. At the time of writing, Blanket’s method missing reads as such:</p>
+
+<script src="https://gist.github.com/inf0rmer/fcc26bb9d6045f72d4df.js"> </script>
+
+<p>Calling any undefined method on a <code>Blanket::Wrapper</code> object will return a new instance wrapped with the current URL. The fact that these objects are, for all intents and purposes, immutable is an aspect that greatly lowers the complexity of the program, but that is enough material for another post ☺.</p>
+
+<p>This class currently spans around 90 LOC, with most of it dedicated to private helper methods. The <code>Wrapper</code> class contains five other public methods though: the RESTful request actions. These, however, are not statically defined in the code either, they are generated at runtime.</p>
+
+<h1>Code that writes code</h1>
+
+<p>Ruby objects have another very useful method for metaprogramming called <strong><code>define_method</code></strong>. This allows you to define methods in your class at runtime, as if out of thin air. To generate the request actions Blanket defines a small private &quot;macro&quot; (heavy quotes around that as Ruby does not really support macros, this just makes it look like one):</p>
+
+<script src="https://gist.github.com/inf0rmer/c3034198f813d92492f9.js"> </script>
+
+<p>The <code>request</code> method is where the actual HTTP request happens, so this macro is just a way to conveniently add all of the similar request actions at runtime. Here’s how all the relevant methods are added:</p>
+
+<script src="https://gist.github.com/inf0rmer/4321e9b103d027a14b22.js"> </script>
+
+<h1>Classes can be dynamic too!</h1>
+
+<p>While developing Exception raising support, I came across a fun problem: I wanted to expose specific <code>Blanket::Exception</code> classes for well known HTTP status codes such as <code>400</code>, <code>404</code>, <code>500</code>, you get the drift. This would make capturing and handling different types of exceptions easier.</p>
+
+<p>One could surely just type all this code in, but there are about 60 well-known status codes and I don’t really enjoy repetitive tasks that much. Let’s take a map of status codes, using the code as a key and the value as it’s meaning in a human readable format:</p>
+
+<script src="https://gist.github.com/inf0rmer/4b00db3eaf14affba8e3.js"> </script>
+
+<p>Let’s get on to the fun part: generating <code>Blanket::Exception</code> subclasses for each of these!</p>
+
+<script src="https://gist.github.com/inf0rmer/147dd9d5c52f2ed77aae.js"> </script>
+
+<p>There are a few things happening here. For each code/message pair, we’re creating a new Class inheriting from <code>Exception</code>, defining a method in it, setting it as a constant and finally, adding it to another map, <code>EXCEPTIONS_MAP</code>. This last step allows to raise a new 500 Exception like this:</p>
+
+<script src="https://gist.github.com/inf0rmer/8148341963c0b52d1efc.js"> </script>
+
+<p>Because we also defined each of these exceptions as a constant, you could also do this directly:</p>
+
+<script src="https://gist.github.com/inf0rmer/b73d0c8a84e0d3e197b1.js"> </script>
+
+<h1>Documenting your endeavours</h1>
+
+<p>Writing code that writes code can obviously be very powerful, but software cannot be written solely for the computer to understand. Because your code will, at some point, probably be used by other human beings, documenting how it works is of paramount importance. <strong>But how do you document that which is not there?</strong></p>
+
+<p><a href="http://yardoc.org/">YARD</a> is a documentation tool for Ruby projects. Here’s how you may generally document a static method:</p>
+
+<script src="https://gist.github.com/inf0rmer/559c04cb99f2462b830e.js"> </script>
+
+<p>Remember the <code>add_action</code> &quot;macro&quot; we talked about earlier, used to define the various RESTful action methods? We can use YARD’s <code>@macro</code> directive to dynamically create documentation for all invocations of <code>add_action</code>:</p>
+
+<script src="https://gist.github.com/inf0rmer/7bfbdb91a5f01e8b56c4.js"> </script>
+
+<p>When we call <code>add_action</code> with <code>:get</code>, for example, documentation would be created for a public method <code>get</code>, with the text <em>Performs a get request on the wrapped URL</em> as well as all available parameters and return types.</p>
+
+<h1>Wrapping it all up</h1>
+
+<p>Metaprogramming allows you to build wonderfully expressive interfaces while writing as little code as possible. In the case of Blanket, the whole project is comprised of three classes weighing around 40–90 LOC each, including documentation. For such a little utility, I would argue it packs a whole lot of functionality and delivers in a very terse and declarative way.</p>
+
+<p>While it can be a powerful tool, in most cases you should exercise caution and restraint when using it, as its misuse can quickly muddle a codebase and lead to confused and frustrated collaborators trying to make sense of your highly abstracted code.</p>
+
+<p>The next challenge? What if you could do this in Javascript? Every piece of software that can be written in Javascript will eventually be written in Javascript, so why not give it a go? Stay tuned!</p>
+
+<p>Header Photo by <a href="https://www.flickr.com/photos/87485176@N08/15062733327/in/photolist-oX3rQK-pRjCbP-o8Zvys-o7sUGi-pyJSZC-qdic3a-pRSkKv-pmhgiG-phhvdB-pyv1Ke-phiMJG-pqsTpJ-qughm9-pzD5mY-pSacjU-pwHhaA-phjheh-phiZgj-pzDHf7-pPXZuQ-pzExwB-pCErwx-pheQo6-phigXe-phjcfg-pyur2n-pyKGsr-pwLuHq-phjwPr-oz5kXU-phiDb8-pyMnpc-phi52o-phh53B-pyPj2g-phfqux-oHnU8G-oVdcUh-pxFHgE-qvAG9K-phjB1H-pyu5mK-pyNTpk-phik3y-pyKQ2w-phhbwZ-pyLy8i-pzFLjm-oVgKgD-pS5j6n">Elvis Pucar</a></p>
+
+        </section>
+        <footer class="post-footer">
+          <section class="share">
+            
+              
+                <a class="icon-twitter" href="http://twitter.com/share?text=Exploring+APIs+with+Metaprogramming&amp;url=http://brunoabrantes.com/2014/08/29/exploring-apis-with-metaprogramming"
+                  onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+                <i class="fa fa-twitter"></i><span class="hidden">twitter</span>
+                </a>
+              
+            
+              
+            
+          </section>
+        </footer>
+      </article>
+    </main>
+    <div class="bottom-closer">
+      <div class="background-closer-image"  style="background-image: url(/assets/images/cover.jpg)">
+        Image
+      </div>
+      <div class="inner">
+        <h1 class="blog-title">Bruno writes software</h1>
+        <h2 class="blog-description">Breaking fast and moving things.
+</h2>
+        <a href="/" class="btn">Back to Overview</a>
+      </div>
+    </div>
+    <script src="/assets/app-dfe630b9eba92aaee8a8feaf9758c3af.js" async></script>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-5722833-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+  </body>
+</html>
