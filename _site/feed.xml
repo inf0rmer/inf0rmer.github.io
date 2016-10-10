@@ -4,11 +4,11 @@
     <title>Bruno writes software</title>
     <description>Breaking fast and moving things.
 </description>
-    <link>http://brunoabrantes.com/</link>
-    <atom:link href="http://brunoabrantes.com/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Wed, 21 Jan 2015 17:44:41 +0100</pubDate>
-    <lastBuildDate>Wed, 21 Jan 2015 17:44:41 +0100</lastBuildDate>
-    <generator>Jekyll v2.5.3</generator>
+    <link>http://localhost:4000/</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Tue, 11 Oct 2016 00:40:45 +0200</pubDate>
+    <lastBuildDate>Tue, 11 Oct 2016 00:40:45 +0200</lastBuildDate>
+    <generator>Jekyll v3.3.0</generator>
     
       <item>
         <title>Exploring APIs with Metaprogramming</title>
@@ -20,7 +20,32 @@
 
 &lt;p&gt;For the purposes of this article, we can define metaprogramming as the ability to &lt;strong&gt;write code that writes code&lt;/strong&gt;. I’ve been dwelling on this topic a lot ever since I started playing with the &lt;a href=&quot;http://elixir-lang.org/&quot;&gt;Elixir language&lt;/a&gt;, however, after having discussed RESTful API design with my co-workers during the last few weeks, I set out to build a simple tool that allows one to easily explore and consume a web API. The result is a Ruby gem affectionately called &lt;a href=&quot;https://github.com/inf0rmer/blanket&quot;&gt;Blanket&lt;/a&gt;. Here’s an example of Blanket in use, together with the &lt;a href=&quot;https://developer.github.com/v3/&quot;&gt;Github API&lt;/a&gt;:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/78a84c0faa1a087ddf24.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;require &amp;#39;blanket&amp;#39;&lt;/p&gt;
+
+&lt;p&gt;github = Blanket.wrap(&amp;quot;https://api.github.com&amp;quot;)&lt;/p&gt;
+
+&lt;h1&gt;Get some user&amp;#39;s info&lt;/h1&gt;
+
+&lt;p&gt;user = github.users(&amp;#39;inf0rmer&amp;#39;).get
+user.login&lt;/p&gt;
+
+&lt;h1&gt;=&amp;gt; &amp;quot;inf0rmer&amp;quot;&lt;/h1&gt;
+
+&lt;h1&gt;Get a user&amp;#39;s repos&lt;/h1&gt;
+
+&lt;p&gt;github.users(&amp;#39;inf0rmer&amp;#39;).repos.get&lt;/p&gt;
+
+&lt;h1&gt;=&amp;gt; [{&lt;/h1&gt;
+
+&lt;h1&gt;&amp;quot;id&amp;quot;: 20000073,&lt;/h1&gt;
+
+&lt;h1&gt;&amp;quot;name&amp;quot;: &amp;quot;BAPersistentOperationQueue&amp;quot;,&lt;/h1&gt;
+
+&lt;h1&gt;...&lt;/h1&gt;
+
+&lt;h1&gt;}, ...]&lt;/h1&gt;
+
+&lt;p&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/78a84c0faa1a087ddf24.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;h1&gt;Dynamic method dispatching&lt;/h1&gt;
 
@@ -28,7 +53,12 @@
 
 &lt;p&gt;The actual code that does this is surprisingly small and terse, thanks to Ruby’s support for dynamic method dispatch via &lt;strong&gt;&lt;code&gt;method_missing&lt;/code&gt;&lt;/strong&gt;. If you define this method in one of your classes, all messages sent to that object that are not statically defined get rerouted to the handler you’ve defined. At the time of writing, Blanket’s method missing reads as such:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/fcc26bb9d6045f72d4df.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;def method&lt;em&gt;missing(method, *args, &amp;amp;block)
+  Wrapper.new uri&lt;/em&gt;from_parts([method, args.first]), {
+    headers: @headers,
+    extension: @extension
+  }
+end&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/fcc26bb9d6045f72d4df.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;Calling any undefined method on a &lt;code&gt;Blanket::Wrapper&lt;/code&gt; object will return a new instance wrapped with the current URL. The fact that these objects are, for all intents and purposes, immutable is an aspect that greatly lowers the complexity of the program, but that is enough material for another post ☺.&lt;/p&gt;
 
@@ -38,11 +68,19 @@
 
 &lt;p&gt;Ruby objects have another very useful method for metaprogramming called &lt;strong&gt;&lt;code&gt;define_method&lt;/code&gt;&lt;/strong&gt;. This allows you to define methods in your class at runtime, as if out of thin air. To generate the request actions Blanket defines a small private &amp;quot;macro&amp;quot; (heavy quotes around that as Ruby does not really support macros, this just makes it look like one):&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/c3034198f813d92492f9.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;def add&lt;em&gt;action(action)
+  define&lt;/em&gt;method(action) do |id=nil, options={}|
+    request(action, id, options)
+  end
+end&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/c3034198f813d92492f9.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;The &lt;code&gt;request&lt;/code&gt; method is where the actual HTTP request happens, so this macro is just a way to conveniently add all of the similar request actions at runtime. Here’s how all the relevant methods are added:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/4321e9b103d027a14b22.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;add&lt;em&gt;action :get
+add&lt;/em&gt;action :post
+add&lt;em&gt;action :put
+add&lt;/em&gt;action :patch
+add_action :delete&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/4321e9b103d027a14b22.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;h1&gt;Classes can be dynamic too!&lt;/h1&gt;
 
@@ -50,19 +88,38 @@
 
 &lt;p&gt;One could surely just type all this code in, but there are about 60 well-known status codes and I don’t really enjoy repetitive tasks that much. Let’s take a map of status codes, using the code as a key and the value as it’s meaning in a human readable format:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/4b00db3eaf14affba8e3.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;STATUSES = {
+  # ...
+  400 =&amp;gt; &amp;#39;Bad Request&amp;#39;,
+  401 =&amp;gt; &amp;#39;Unauthorized&amp;#39;,
+  402 =&amp;gt; &amp;#39;Payment Required&amp;#39;,
+  403 =&amp;gt; &amp;#39;Forbidden&amp;#39;,
+  404 =&amp;gt; &amp;#39;Resource Not Found&amp;#39;,
+  405 =&amp;gt; &amp;#39;Method Not Allowed&amp;#39;,
+  406 =&amp;gt; &amp;#39;Not Acceptable&amp;#39;,
+  407 =&amp;gt; &amp;#39;Proxy Authentication Required&amp;#39;,
+  408 =&amp;gt; &amp;#39;Request Timeout&amp;#39;,
+  # ...
+}&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/4b00db3eaf14affba8e3.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;Let’s get on to the fun part: generating &lt;code&gt;Blanket::Exception&lt;/code&gt; subclasses for each of these!&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/147dd9d5c52f2ed77aae.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;STATUSES.each&lt;em&gt;pair do |code, message|
+  klass = Class.new(Exception) do
+    send(:define&lt;/em&gt;method, :message) {&amp;quot;#{code ? &amp;quot;#{code} &amp;quot; : &amp;#39;&amp;#39;}#{message}&amp;quot;}
+  end&lt;/p&gt;
+
+&lt;p&gt;klass&lt;em&gt;constant = const&lt;/em&gt;set message.delete(&amp;#39; -&amp;amp;#39;&amp;#39;), klass
+  Exceptions::EXCEPTIONS&lt;em&gt;MAP[code] = klass&lt;/em&gt;constant
+end&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/147dd9d5c52f2ed77aae.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;There are a few things happening here. For each code/message pair, we’re creating a new Class inheriting from &lt;code&gt;Exception&lt;/code&gt;, defining a method in it, setting it as a constant and finally, adding it to another map, &lt;code&gt;EXCEPTIONS_MAP&lt;/code&gt;. This last step allows to raise a new 500 Exception like this:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/8148341963c0b52d1efc.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;raise Blanket::Exceptions::EXCEPTIONS_MAP[500].new&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/8148341963c0b52d1efc.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;Because we also defined each of these exceptions as a constant, you could also do this directly:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/b73d0c8a84e0d3e197b1.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;raise Blanket::InternalServerError.new&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/b73d0c8a84e0d3e197b1.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;h1&gt;Documenting your endeavours&lt;/h1&gt;
 
@@ -70,11 +127,33 @@
 
 &lt;p&gt;&lt;a href=&quot;http://yardoc.org/&quot;&gt;YARD&lt;/a&gt; is a documentation tool for Ruby projects. Here’s how you may generally document a static method:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/559c04cb99f2462b830e.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;# Creates a new exception&lt;/p&gt;
+
+&lt;h1&gt;@param [HTTParty::Response] response the HTTP Response&lt;/h1&gt;
+
+&lt;h1&gt;@return [Blanket::Exception] The Blanket Exception object&lt;/h1&gt;
+
+&lt;p&gt;def initialize(response = nil)
+  #...
+end&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/559c04cb99f2462b830e.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;Remember the &lt;code&gt;add_action&lt;/code&gt; &amp;quot;macro&amp;quot; we talked about earlier, used to define the various RESTful action methods? We can use YARD’s &lt;code&gt;@macro&lt;/code&gt; directive to dynamically create documentation for all invocations of &lt;code&gt;add_action&lt;/code&gt;:&lt;/p&gt;
 
-&lt;script src=&quot;https://gist.github.com/inf0rmer/7bfbdb91a5f01e8b56c4.js&quot;&gt; &lt;/script&gt;
+&lt;p&gt;&lt;noscript&gt;&lt;pre&gt;# @macro [attach] REST action&lt;/p&gt;
+
+&lt;h1&gt;@method $1()&lt;/h1&gt;
+
+&lt;h1&gt;Performs a $1 request on the wrapped URL&lt;/h1&gt;
+
+&lt;h1&gt;@param [String, Symbol, Numeric] id The resource identifier to attach to the last part of the request&lt;/h1&gt;
+
+&lt;h1&gt;@param [Hash] options An options hash with values for :headers, :extension and :params&lt;/h1&gt;
+
+&lt;h1&gt;@return [Blanket::Response, Array] A wrapped Blanket::Response or an Array&lt;/h1&gt;
+
+&lt;p&gt;def add_action(action)
+  #...
+end&lt;/pre&gt;&lt;/noscript&gt;&lt;script src=&quot;https://gist.github.com/inf0rmer/7bfbdb91a5f01e8b56c4.js&quot;&gt; &lt;/script&gt;&lt;/p&gt;
 
 &lt;p&gt;When we call &lt;code&gt;add_action&lt;/code&gt; with &lt;code&gt;:get&lt;/code&gt;, for example, documentation would be created for a public method &lt;code&gt;get&lt;/code&gt;, with the text &lt;em&gt;Performs a get request on the wrapped URL&lt;/em&gt; as well as all available parameters and return types.&lt;/p&gt;
 
@@ -89,8 +168,8 @@
 &lt;p&gt;Header Photo by &lt;a href=&quot;https://www.flickr.com/photos/87485176@N08/15062733327/in/photolist-oX3rQK-pRjCbP-o8Zvys-o7sUGi-pyJSZC-qdic3a-pRSkKv-pmhgiG-phhvdB-pyv1Ke-phiMJG-pqsTpJ-qughm9-pzD5mY-pSacjU-pwHhaA-phjheh-phiZgj-pzDHf7-pPXZuQ-pzExwB-pCErwx-pheQo6-phigXe-phjcfg-pyur2n-pyKGsr-pwLuHq-phjwPr-oz5kXU-phiDb8-pyMnpc-phi52o-phh53B-pyPj2g-phfqux-oHnU8G-oVdcUh-pxFHgE-qvAG9K-phjB1H-pyu5mK-pyNTpk-phik3y-pyKQ2w-phhbwZ-pyLy8i-pzFLjm-oVgKgD-pS5j6n&quot;&gt;Elvis Pucar&lt;/a&gt;&lt;/p&gt;
 </description>
         <pubDate>Tue, 30 Dec 2014 00:00:00 +0100</pubDate>
-        <link>http://brunoabrantes.com/2014/12/30/exploring-apis-with-metaprogramming.html</link>
-        <guid isPermaLink="true">http://brunoabrantes.com/2014/12/30/exploring-apis-with-metaprogramming.html</guid>
+        <link>http://localhost:4000/2014/12/30/exploring-apis-with-metaprogramming.html</link>
+        <guid isPermaLink="true">http://localhost:4000/2014/12/30/exploring-apis-with-metaprogramming.html</guid>
         
         
       </item>
@@ -148,8 +227,8 @@
 &lt;p&gt;If you have any questions or comments, feel free to reach out to me on Twitter. I’m &lt;a href=&quot;http://twitter.com/inf0rmer&quot;&gt;@informer&lt;/a&gt;.&lt;/p&gt;
 </description>
         <pubDate>Fri, 29 Aug 2014 00:00:00 +0200</pubDate>
-        <link>http://brunoabrantes.com/2014/08/29/continuous-integration-ios-apps.html</link>
-        <guid isPermaLink="true">http://brunoabrantes.com/2014/08/29/continuous-integration-ios-apps.html</guid>
+        <link>http://localhost:4000/2014/08/29/continuous-integration-ios-apps.html</link>
+        <guid isPermaLink="true">http://localhost:4000/2014/08/29/continuous-integration-ios-apps.html</guid>
         
         
       </item>

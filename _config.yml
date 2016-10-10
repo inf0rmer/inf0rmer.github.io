@@ -58,6 +58,9 @@ gems:
   - jekyll-assets
   - uglifier
   - sass
+  - jekyll-paginate
+  - bourbon
+  - jekyll-gist
 assets:
   js_compressor:  uglifier
   css_compressor: sass
